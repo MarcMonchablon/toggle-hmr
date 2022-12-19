@@ -19,7 +19,7 @@
 		"matches": ["http://localhost/*"]
 	}],
 	"web_accessible_resources": [{
-		"resources": ["webby-hole.js"],
+		"resources": ["managed-websocket.js"],
 		"matches": ["http://localhost/*"]
 	}],
 	"action": {

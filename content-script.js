@@ -18,7 +18,7 @@
 
 // Inject script to monkey-patch WebSocket
 var scriptEl = document.createElement('script');
-scriptEl.src = chrome.runtime.getURL('webby-hole.js');
+scriptEl.src = chrome.runtime.getURL('managed-websocket.js');
 (document.head || document.documentElement).appendChild(scriptEl);
 
 // TODO: return page's WebSocket updates to the extension
