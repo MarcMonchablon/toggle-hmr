@@ -241,7 +241,7 @@ function _sprinkleSomeEventHandling(Obj, allowedEvents) {
 	Obj.prototype._superEventHandling = function() {
 		// Store the listeners reference in `this.__listeners`
 		const listenersDict = {};
-		allowedEvents.forEach(eventType => listenersDict[eventType] = []);
+		allowedEvents.forEach(eventType => listenersDict['on'+eventType] = []);
 		Object.defineProperty(this, '__listeners', {
 			value: listenersDict,
 			enumerable: false,
@@ -273,7 +273,11 @@ function _sprinkleSomeEventHandling(Obj, allowedEvents) {
 
 	Obj.prototype.dispatchEvent = function(event) {
 		const toRemove = [];
-		let listeners = this.__listeners['on'+event.type];
+		const listeners = this.__listeners['on'+event.type];
+
+		// If no listener for event type exist, we can return early.
+		if (!listeners || listeners.length === 0) { return true; }
+
 		for (const listener of listeners) {
 			listener.callback.call(this, event);
 
