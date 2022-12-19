@@ -15,7 +15,7 @@
  * This is why it's scoped to localhost in the extension manifest.json.
  *
  * Special thanks to the answers in:
- * https://stackoverflow.com/questions/31181651/inspecting-websocket-frames-in-an-undetectable-way/31182643#31182643
+ * https://stackoverflow.com/questions/62798510/how-can-an-extension-listen-to-a-websocket-and-what-if-the-websocket-is-within
  * which helped flesh out the script-injection part, and gave a baseline
  * to work for the WebSocket monkey-patch.
  */
