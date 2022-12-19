@@ -3,7 +3,7 @@
 	"name": "Toggle HMR",
 	"description": "Allow better control of WebPack or Vite's Hot Module Reload by toggling WebSocket during runtime.",
 	"version": "0.1",
-	"permissions": ["activeTab", "scripting"],
+	"permissions": ["activeTab", "storage", "webRequest"],
 	"icons": {
 		"16": "images/icon-16.png",
 		"32": "images/icon-32.png",
@@ -13,6 +13,15 @@
 	"background": {
 		"service_worker": "background.js"
 	},
+	"content_scripts": [{
+		"js": ["content-script.js"],
+		"run_at": "document_start",
+		"matches": ["http://localhost/*"]
+	}],
+	"web_accessible_resources": [{
+		"resources": ["webby-hole.js"],
+		"matches": ["http://localhost/*"]
+	}],
 	"action": {
 		"default_icon": {
 			"16": "images/icon-16.png",
