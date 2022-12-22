@@ -14,17 +14,29 @@
  *
  * In order to mitigate the monkey-patching of WebSocket & JS injection
  * by default, the extension should only be enabled on localhost.
+ *
+ * NOTE: we need to JSON.stringify the payload in event.detail because
+ * of a bug in Chrome: if the event is sent into a closure (such as
+ * setTimeout, or inside another event's listener), and the delay is
+ * too long (> 20ms) then the content-script receive an event with
+ * `event.detail === null`, probably because of an overbearing garbage
+ * collector. Luckily, the behavior doesn't seem to apply for primitives,
+ * which is why we JSON.stringify the payload as a workaround.
  */
+
+// Set-up communication between background task and page runtime
+window.addEventListener('togglehmr-event', (e) => {
+	const payload = e.detail ? JSON.parse(e.detail) : null;
+	chrome.runtime.sendMessage({ message: payload });
+});
+
+chrome.runtime.onMessage.addListener((data, sender) => {
+	window.dispatchEvent(new CustomEvent('togglehmr-command', {
+		detail: JSON.stringify(data),
+	}));
+});
 
 // Inject script to monkey-patch WebSocket
 var scriptEl = document.createElement('script');
 scriptEl.src = chrome.runtime.getURL('managed-websocket.js');
 (document.head || document.documentElement).appendChild(scriptEl);
-
-// TODO: return page's WebSocket updates to the extension
-
-
-// Send a message to the service worker on each page load,
-// if we want to use the webRequest API early enough 
-// to manage the websockets.
-chrome.runtime.sendMessage({ message: 'page-load' });

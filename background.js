@@ -1,39 +1,42 @@
-// === On Install
+/**
+ * Background task, it has two main responsibilities:
+ * - send command to page runtime, mainly to enable/disable websockets.
+ * - display current websocket states in popup (TODO).
+ */
+
+// === On webExtension install
 chrome.runtime.onInstalled.addListener(() => {
-	console.info('[T-HMR] OnInstalled');
-	chrome.action.setBadgeText({ text: 'OFF' });
+	chrome.action.setBadgeText({ text: '' });
 });
 
-// === On Click
-chrome.action.onClicked.addListener(async (tab) => {
-	const oldState = await chrome.action.getBadgeText({ tabId: tab.id });
-	const newState = (oldState === 'ON') ? 'OFF' : 'ON';
 
-	await chrome.action.setBadgeText({ tabId: tab.id, text: newState });
-	// TODO: save wether the current tab is active or not in storage.session
-
-
-	if (newState === 'ON') {
-		console.info('[T-HMR] cutting all websockets');
-	} else {
-		console.log('[T-HMR] re-enable all websockets');
-		// TODO
-	}
-});
-
-// === On Page load
-chrome.runtime.onMessage.addListener(async (data, sender) => {
+// === On page event
+chrome.runtime.onMessage.addListener(async (data, sender)=> {
+	// TODO: display status for each websockets
+	/*
 	const tabId = sender.tab.id;
-	const message = data.message;
-	if (message === 'page-load') {
-		// TODO: load the page
-		//checkWebsockets(tabId, 'from-message');
-	}
+	const payload = data.message;
+	console.group('[Background] on pageEvent');
+	console.log('tabId: ', tabId);
+	console.log('payload: ', payload);
+	console.groupEnd();
+	*/
 });
 
 
-// === Manage webSockets
+// === On action click
+chrome.action.onClicked.addListener(async (tab) => {
+	const LABEL_UNPLUG_WEBSOCKETS = '!';
 
-function manageWebsocket() {
-	// TODO
-}
+	// Update action label on click
+	const oldLabel = await chrome.action.getBadgeText({ tabId: tab.id });
+	const newLabel = (oldLabel === '') ? LABEL_UNPLUG_WEBSOCKETS : '';
+	await chrome.action.setBadgeText({ tabId: tab.id, text: newLabel });
+
+	// Toggle state for all websockets.
+	chrome.tabs.sendMessage(tab.id, {
+		scope: 'all-websockets',
+		command: 'setPlugged',
+		value: newLabel !== LABEL_UNPLUG_WEBSOCKETS,
+	});
+});

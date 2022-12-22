@@ -1,10 +1,11 @@
 /**
  * JS code meant to be injected by content-script in the JS runtime.
  *
- * This file has 3 parts (not in order):
- * - a helper function to emulate native EventTarget behavior
- * - a monkey-patch around WebSocket to create 'managed' WebSocket
+ * This file has 4 parts (not in order):
+ * - a helper function to emulate native EventTarget behavior.
+ * - a monkey-patch around WebSocket to create 'managed' WebSocket.
  * - a register object to easily access websocket created by third party.
+ * - setting-up communication between the page and the content-script
  *
  * The main point of entry will be the global `_wsRegister` object,
  * which is an instance of ManagedWebSocketRegister that gives control
@@ -24,7 +25,7 @@
 // === ManagedWebSocket Register
 
 const ManagedWebSocketRegister = (function() {
-	const AVAILABLE_EVENTS = [];
+	const AVAILABLE_EVENTS = ['update'];
 	const KEEP_REMOVED_WEBSOCKETS = true;
 
 	function Register() {
@@ -42,16 +43,58 @@ const ManagedWebSocketRegister = (function() {
 
 	Register.prototype.add = function(ws, info) {
 		const id = this._nextId++;
-		this._items.push({ id, ws, info });
+		const newItem = { id, ws, info };
+		this._items.push(newItem);
+		this.dispatchEvent(new CustomEvent('update', {
+			detail: { type: 'new-item', newItem },
+		}));
 		return id;
 	};
 
 	Register.prototype.remove = function(itemId) {
 		const removed = this._items.find(d => d.id === itemId);
 		this._items = this._items.filter(d => d.id !== itemId);
+		this.dispatchEvent(new CustomEvent('update', {
+			detail: { type: 'removed-item', removed },
+		}));
 		if (KEEP_REMOVED_WEBSOCKETS) { this._removed.push(removed); }
 		return removed;
 	};
+
+	Register.prototype.getState = function() {
+		const sockets = this._items.map(d => ({
+			id: d.id,
+			info: d.info,
+			plugged: d.ws.isPlugged,
+		}));
+		return { sockets };
+	};
+
+	Register.prototype.plugAll = function() {
+		return this.setPluggedAll(true);
+	};
+
+	Register.prototype.unplugAll = function() {
+		return this.setPluggedAll(false);
+	};
+
+	Register.prototype.setPluggedAll = function(plug = true) {
+		const items = this._items;
+		let wasPlugged = 0, wasUnplugged = 0;
+		for (const item of items) {
+			const plugged = item.ws.isPlugged();
+			plugged ? wasPlugged++ : wasUnplugged++;
+			item.ws.setPlugged(plug);
+		}
+
+		return {
+			command: plug ? 'plug' : 'unplug',
+			total: items.length,
+			wasPlugged: wasPlugged,
+			wasUnplugged: wasUnplugged,
+		};
+	};
+
 
 	return Register;
 })();
@@ -189,7 +232,6 @@ const ManagedWebSocket = (function() {
 	return ManagedWebSocket;
 })();
 
-// And finally monkey-patch our trusty WebSocket :)
 window.WebSocket = ManagedWebSocket;
 
 
@@ -313,3 +355,51 @@ function _sprinkleSomeEventHandling(Obj, allowedEvents) {
 		this.__listeners['on'+type] = listeners;
 	};
 }
+
+
+// === Communication with content-script
+// (See content-script comment on why we need to wrap with JSON.stringify)
+
+(function () {
+	const INPUT_EVENT_TYPE = 'togglehmr-command';
+	const OUTPUT_EVENT_TYPE = 'togglehmr-event';
+
+	// Sending the websocket register state on initialization
+	window.dispatchEvent(new CustomEvent(OUTPUT_EVENT_TYPE, {
+		detail: JSON.stringify({
+			type: 'register',
+			origin: 'initialization',
+			data: window._wsRegister.getState(),
+		}),
+	}));
+
+	// Sending the websocket register state on each update
+	window._wsRegister.addEventListener('update', e => {
+		window.dispatchEvent(new CustomEvent(OUTPUT_EVENT_TYPE, {
+			detail: JSON.stringify({
+				type: 'register',
+				origin: 'onUpdate',
+				data: window._wsRegister.getState(),
+			}),
+		}));
+	});
+
+	// Listening to background script commands
+	window.addEventListener(INPUT_EVENT_TYPE, (e) => {
+		const data = e.detail ? JSON.parse(e.detail) : null;
+		if (!data.command) { return; }
+		executeCommand(data.command, data.scope, data.value);
+	});
+
+	function executeCommand(command, scope = null, value = null) {
+		if (scope === 'all-websockets') {
+			switch (command) {
+			case 'setPlugged':
+				window._wsRegister.setPluggedAll(!!value);
+				break;
+			}
+		} else {
+			// TODO: do per-websocket command
+		}
+	}
+})();
