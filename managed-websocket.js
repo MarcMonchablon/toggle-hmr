@@ -33,6 +33,7 @@ const ManagedWebSocketRegister = (function() {
 		this._nextId = 1;
 		this._items = [];
 		this._removed = [];
+		this._plugged = 'all';
 	}
 	_sprinkleSomeEventHandling(Register, AVAILABLE_EVENTS);
 
@@ -45,6 +46,11 @@ const ManagedWebSocketRegister = (function() {
 		const id = this._nextId++;
 		const newItem = { id, ws, info };
 		this._items.push(newItem);
+
+		// Sometime new WebSockets are created when old ones goes AWOL,
+		// so to disable auto-refresh we need to unplug those too.
+		if (this._plugged === 'none') { ws.unplug(); }
+
 		this.dispatchEvent(new CustomEvent('update', {
 			detail: { type: 'new-item', newItem },
 		}));
@@ -67,7 +73,11 @@ const ManagedWebSocketRegister = (function() {
 			info: d.info,
 			plugged: d.ws.isPlugged,
 		}));
-		return { sockets };
+
+		return {
+			plugged: this._plugged,
+			sockets: sockets,
+		};
 	};
 
 	Register.prototype.plugAll = function() {
@@ -87,6 +97,7 @@ const ManagedWebSocketRegister = (function() {
 			item.ws.setPlugged(plug);
 		}
 
+		this._plugged = plug ? 'all' : 'none';
 		return {
 			command: plug ? 'plug' : 'unplug',
 			total: items.length,
