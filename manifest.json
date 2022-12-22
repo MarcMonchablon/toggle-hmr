@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "Toggle HMR",
 	"description": "Allow better control of WebPack or Vite's Hot Module Reload by toggling WebSocket during runtime.",
-	"version": "0.1",
+	"version": "1.0.0",
 	"permissions": ["activeTab", "storage", "webRequest"],
 	"icons": {
 		"16": "images/icon-16.png",
