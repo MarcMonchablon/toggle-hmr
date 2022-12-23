@@ -158,7 +158,7 @@ const ManagedWebSocket = (function() {
 			);
 		}
 	}
-
+	_sprinkleSomeEventHandling(ManagedWebSocket, AVAILABLE_EVENTS);
 
 	// (real) WebSocket instance methods
 
@@ -189,8 +189,6 @@ const ManagedWebSocket = (function() {
 
 
 	// Event handling
-
-		_sprinkleSomeEventHandling(ManagedWebSocket, AVAILABLE_EVENTS);
 
 	ManagedWebSocket.prototype._handleEvent = function(type, event) {
 		if (this._plugged) {
