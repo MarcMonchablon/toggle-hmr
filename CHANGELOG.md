@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0] - 2022-12-26
+
+### Added
+
+- A slick README.md file because apparently other peoples exists
+
+### Fixed
+
+- Actually block Next.js from refreshing (by unplugging new WebSockets)
+- Fix "unplugged" state lost when refreshing the page
+- Too many requested permissions in manifest
+
 ## [1.0.0] - 2022-12-22
 
 ### Added
