@@ -40,3 +40,7 @@ chrome.runtime.onMessage.addListener((data, sender) => {
 var scriptEl = document.createElement('script');
 scriptEl.src = chrome.runtime.getURL('managed-websocket.js');
 (document.head || document.documentElement).appendChild(scriptEl);
+
+// Notify background task for each page-load, because we want
+// to keep websocket disabled even after a reload.
+chrome.runtime.sendMessage({ message: { type: 'page-load' }});
